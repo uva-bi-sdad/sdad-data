@@ -1,0 +1,3 @@
+url, schemaname
+"ftp://ftp2.census.gov/geo/tiger/GENZ2016/shp/", "geospatial$census_cb"
+"ftp://ftp2.census.gov/geo/tiger/TIGER2017/COUNTY/", "geospatial$census_tl"

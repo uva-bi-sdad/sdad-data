@@ -1,0 +1,136 @@
+---
+title: "MSHA Webscraping"
+author: "Devika Nair"
+date: "6/15/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Loads libraries needed
+knitr::opts_chunk$set(echo = TRUE)
+library(XML)
+library(dplyr)
+```
+
+
+## Grabbing the MSHA Zip Names
+
+The MSHA website is an HTML site with links that automatically download zip files to your machine. The first step of webscraping this website is to grab these links off the website.
+
+In the chunk below, we create an object "url" to store the MSHA website. 
+Next, we use read_html to bring in the underlying HTML code. 
+Then we use html_nodes to filter the code for any 'a' tags, which defines hyperlinks. 
+We then filter for the 'href' attribute, which is the attribute of 'a' that specifies a link destination. 
+
+At this point, we have a list of all links on the MSHA page - which includes the menu bar links and metadata txt files. We only want the zip files so we use the regular expressions in combination with the str_match to filter the list for just links that end in "zip". After this point, we have a list of NAs & zip link names - so we filter out the NAs. 
+
+We now have the zip link names, ex: "DataSets/Accidents.zip." We will use these to create the download links. 
+
+
+```{r}
+url <- "https://arlweb.msha.gov/OpenGovernmentData/OGIMSHA.asp"
+
+ . <- xml2::read_html(url)                          #  load a webpage
+ . <- rvest::html_nodes(., 'a')                     #  get the html link tags ('a') on the page
+ . <- rvest::html_attr(., 'href')                  #   get the actual links(urls) from the 'href' property of the html 'a' tags
+ . <- stringr::str_match(., "(.*zip$)")[,1]   #  extract just the links(urls) ending in "daily"
+ . <- .[!is.na(.)]                                  #  remove the NA entries
+ .
+ 
+```
+
+## Creating the Zip Links
+
+Now that we have the zip link names - we need to create the actual downloadable zip links themselves. When you hover over a dataset link on the MSHA website, you notice that the format of the download links doesn't match the website's link. The download links do not have the "OGIMSHA.asp" ending. We need to create the download links by concatenating (or combining the text of) the base url with the zip link names. We use "paste0" to concatenate text without inserting a space between the characters and "mutate" to create a new column. 
+
+Now that we have two columns in our dataset, we notice the first column's name is simply "." so we use colnames to rename these. 
+
+```{r}
+baseurl <- "https://arlweb.msha.gov/OpenGovernmentData/"
+
+msha_mining_zip_urls <- as.data.frame(., col.names = "name") %>% 
+   mutate(link = paste0(baseurl, .))
+ colnames(msha_mining_zip_urls) <- c("name", "link")
+ 
+msha_mining_zip_urls
+```
+
+
+## Database Parameters
+
+In the chunks above, we created a dataset that has:
+    - name: where is the data originally coming from
+    - link: what is the original name of the dataset
+
+The chunk below defines the necessary parameters for the database to read in our data. The database needs to know:
+    - url: we will use link from our previous dataset here
+    - filename: we will use name from our previous dataset here
+    - destfile: 
+        * this tells the database where the data should be stored
+        * we will create this by concatenating the phrase "data/" with name from our previous dataset
+    - table name
+        * this tells the database what to name the dataset
+        * we will create this by concatenating "us_" with a dataset ID that helps us keep track of the source as well as name from our previous dataset
+        
+The dataset ID is defined as its own object and helps us keep track of the original source of the data. Here it is given by ds_id, and I have set it to MSHA.
+
+```{r}
+dataset_urls <-
+  data.table::data.table(
+    url = character(),
+    filename = character(),
+    destfile = character(),
+    tablename = character()
+  )
+
+ds_id <- "msha"
+
+for (i in 1:nrow(msha_mining_zip_urls)) {
+  dt_url <- data.table::data.table(
+    url = msha_mining_zip_urls$link[i],
+    filename = msha_mining_zip_urls$name[i],
+    destfile = paste0("data/", msha_mining_zip_urls$name[i]),
+    tablename = paste0("us_", ds_id, "_", gsub(
+      ".", "_", gsub(
+        ".txt",
+        "",
+        gsub(".gz", "", msha_mining_zip_urls$name[i], fixed = TRUE),
+        fixed = TRUE
+      ), fixed = TRUE
+    ))
+  )
+  dataset_urls <- data.table::rbindlist(list(dataset_urls, dt_url))
+}
+
+dataset_urls
+
+```
+
+## Writing Data to Database
+
+ALERT ALERT - DO NOT RUN THIS CODE UNTIL YOU SWAP OUT references to the "sdal" database in the sdalr::con_db function with your PID. 
+
+In this chunk is a for loop that will serve to 'click' on the zip file link and store the data to a temporary destination on the Linux machine of the server. Next, it reads the file stored in that temporary location into a datable. Finally, it establishes a connection with the database, checks to see if the schema already exists and then writes in the data. 
+
+The schema is essentially a folder in the database, so name this based on how you would refer to the data this folder contains. For this, I named it mining. 
+
+Note that depending on the size of the files you're downloading (and perhaps what others are doing on the server), this may take time to run. I would recommend trying this functions with a single row of the dataset first. Eventually, when we have more practice, we can parallelize this. 
+
+
+```{r}
+for (u in 2:nrow(msha_mining_zip_urls)) {
+  # Download and unzip to temp dir
+  print(paste("Downloading, Decompressing and Reading", dataset_urls[u, destfile]))
+  files <- dataplumbr::file.download_unzip2temp(dataset_urls$url[u])
+  # Load File
+  dt <- data.table::fread(files[1])
+  print(paste("Creating database table ", dataset_urls$tablename[u]))
+  
+  
+  con <- sdalr::con_db("sdal")
+  DBI::dbGetQuery(con, paste("CREATE SCHEMA IF NOT EXISTS", "mining"))
+  DBI::dbWriteTable(con, c("mining", dataset_urls$tablename[u]), dt, row.names = F, overwrite = T)
+}
+
+```
+

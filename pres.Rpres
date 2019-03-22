@@ -1,0 +1,46 @@
+pres
+========================================================
+author: Aaron Schroeder
+date: 3/19/19
+autosize: true
+
+First Slide
+========================================================
+
+For more details on authoring R presentations please visit <https://support.rstudio.com/hc/en-us/articles/200486468>.
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+Ingest
+========================================================
+
+Multiple Methods
+- ftp (Census LEHD Origin-Destination Employment Statistics (LODES))
+- library/package (Census American Community Survey (ACS), Transit GTFS Data)
+- database ()
+- API (SDAD Gravity Indices)
+
+```{r}
+summary(cars)
+```
+
+Slide With Plot
+========================================================
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Two-Column Slide
+========================================================
+incremental: true
+
+Some text
+- text
+- text
+- text
+
+***
+Other text
+- text

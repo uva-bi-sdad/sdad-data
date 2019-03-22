@@ -1,0 +1,37 @@
+---
+title: "Block Group Join"
+author: "Devika Nair"
+date: "6/26/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r cars}
+con <- sdalr::con_db("sdal", pass = sdalr::get_my_password())
+
+db = DBI::dbGetQuery(con, 'SELECT * 
+                     FROM geospatial$census_cb.cb_2016_51_bg_500k')
+
+head(db)
+
+head(wkb::readWKB(db$wkb_geometry))
+
+head(sf::st_centroid(db$AFFGEOID))
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

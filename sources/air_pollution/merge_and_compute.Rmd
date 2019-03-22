@@ -1,0 +1,71 @@
+---
+title: "computing distances"
+author: "Cory"
+date: "7/12/2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+rm(list = ls())
+library(dplyr)
+library(gstat)
+library(sp)
+library(maptools)
+library(ggplot2)
+library(raster)
+```
+
+```{r} 
+# LOAD IN
+centroids <- readr::read_csv('~/git/sdal_data/data/sdal_data/final/va_bg_centroids.csv')
+aqi_monitors <- readr::read_csv('~/git/sdal_data/data/sdal_data/final/annual_AQI.csv')
+aqi_duplicate = aqi_monitors
+```
+
+```{r}
+aqi_monitors <- aqi_monitors[aqi_monitors$Year == 2017,] # using 2017 subset for now, will change later
+
+aqi_monitors$x <- aqi_monitors$Longitude
+aqi_monitors$y <- aqi_monitors$Latitude
+
+coordinates(aqi_monitors) = ~x+y
+
+x.range <- as.numeric(c(-74, -91.0))  # min/max longitude of the interpolation area
+y.range <- as.numeric(c(33.5, 41))  # min/max latitude of the interpolation area
+
+grd <- expand.grid(x = seq(from = x.range[1], to = x.range[2], by = -0.05), y = seq(from = y.range[1], to = y.range[2], by = 0.05))  # expand points to grid
+coordinates(grd) <- ~x + y
+gridded(grd) <- TRUE
+
+idw <- idw(formula = annual_aqi ~ 1, locations = aqi_monitors, newdata = grd)
+```
+
+```{r}
+idw.output = as.data.frame(idw)  # output is defined as a data table
+idw.raster = raster(idw)
+names(idw.output)[1:3] <- c("long", "lat", "idw_aqi")  # give names to the modelled variables
+
+states <- map_data("state")
+near_va <- subset(states, region %in% c("virginia", "maryland", "west virginia",
+                                        "north carolina", "kentucky", "tennessee"))
+simple <- extract(idw.raster, centroids, method = 'simple')
+centroids$aqi_approx <- simple
+colnames(centroids) <- c("Lon", "Lat", "aqi_approx")
+```
+
+```{r}
+readr::write_csv(centroids, "~/git/sdal_data/data/sdal_data/final/centroids_with_aqi.csv")
+```
+
+```{r}
+ggplot(data = near_va) +
+  geom_tile(data = idw.output, alpha = 0.8, aes(x = long, y = lat, fill = round(idw_aqi, 0))) +
+  scale_fill_gradient(low = "lightblue", high = "black") +
+  geom_path(aes(x = long, y = lat, group = group), color = "purple") +
+  geom_point(data = aqi_duplicate, aes(x = Longitude, y = Latitude)) +
+  labs(fill = "AQI (Lower is better)", title = "Air Quality Index for Virginia and its Bordering States") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+

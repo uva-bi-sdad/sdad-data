@@ -1,0 +1,71 @@
+---
+title: "radon"
+author: "Luke Kim"
+date: "6/18/2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+radon data (lower case for join purposes)
+```{r}
+library(dplyr)
+library(readxl)
+
+dat = read_excel("data/sdal_data/original/radon/radonzones-table (1).xlsx", sheet = 1) ## this does not belong in this folder
+names(dat) <- make.names(names(dat))
+
+dat = select(dat, County.Name, State, Radon.Zone)
+dat = filter(dat, State == "VA")
+dat = arrange(dat, dat$County.Name)
+
+radon_zones_by_county_VA = dat
+radon_zones_by_county_VA = mutate(radon_zones_by_county_VA, County.Name = stringr::str_to_lower(radon_zones_by_county_VA$County.Name))
+
+# saveRDS(radon_zones_by_county_VA, "./data/") ## fix this path. and put a file extension
+
+```
+
+
+```{r}
+con <- sdalr::con_db("sdal", pass = sdalr::get_my_password())
+
+db = DBI::dbGetQuery(con, 'SELECT "STATEFP", "COUNTYFP", "COUNTYNS", "NAME", "NAMELSAD"
+                           FROM geospatial$census_tl.tl_2017_us_county
+                           WHERE "STATEFP" = \'51\'')
+head(db)
+db = mutate(db, NAME = stringr::str_to_lower(db$NAME))
+db = mutate(db, NAME = stringr::str_to_lower(db$NAMELSAD))
+county_cities = table(db$NAME)
+county_cities[county_cities > 1]
+names(db)
+names(radon_zones_by_county_VA)
+```
+
+```{r}
+db$JOIN_NAME <- gsub(" [a-z]*$", "", db$NAME)
+joined_table = unique(left_join(db, radon_zones_by_county_VA,  by= c("JOIN_NAME" = "County.Name")))
+
+head(joined_table)
+names(joined_table)
+View(joined_table)
+filter(joined_table, NAME == "king and queen")
+filter(joined_table, )
+
+table(joined_table$Radon.Zone, useNA = 'always')
+table(joined_table$State, useNA = 'always')
+
+
+nrow(radon_zones_by_county_VA)
+nrow(joined_table)
+
+dup = table(db$NAME)
+dup[dup > 1]
+
+right = table(radon_zones_by_county_VA$County.Name)
+right[right > 1]
+
+
+```
+
+# Hi I fixed it -Cory

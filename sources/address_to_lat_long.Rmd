@@ -1,0 +1,43 @@
+---
+title: "address_to_lat_long"
+author: "Cory"
+date: "7/18/2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+remove(list = ls())
+library(ggmap)
+library(readr)
+```
+
+```{r}
+drug_treatment <- read_csv("~/git/roa_metrics/data/roa_metrics/original/drug_treatment_addresses.csv")
+workforce_dev <- read_csv("~/git/roa_metrics/data/roa_metrics/original/workforce_addresses.csv")
+```
+
+```{r}
+for(i in 1:nrow(drug_treatment))
+{
+  result <- geocode(drug_treatment$`Addresses of Drug Treatment Facilities`[i], output = "latlona", source = "dsk")
+  drug_treatment$lon[i] <- as.numeric(result[1])
+  drug_treatment$lat[i] <- as.numeric(result[2])
+  Sys.sleep(0.5)
+}
+
+for(i in 1:nrow(workforce_dev))
+{
+  result <- geocode(workforce_dev$Address[i], output = "latlona", source = "dsk")
+  workforce_dev$lon[i] <- as.numeric(result[1])
+  workforce_dev$lat[i] <- as.numeric(result[2])
+  Sys.sleep(0.5)
+}
+```
+
+```{r}
+write_csv(drug_treatment, "~/git/roa_metrics/data/roa_metrics/working/drug_treatment_lat_longs.csv")
+write_csv(workforce_dev, "~/git/roa_metrics/data/roa_metrics/working/workforce_dev_lat_longs.csv")
+```
+

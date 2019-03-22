@@ -1,0 +1,10 @@
+---
+title: "practice git"
+author: "Luke Kim"
+date: "6/20/2018"
+output: html_document
+---
+
+practicing branching and commiting.. haha this is confusing
+
+You'll do fine!

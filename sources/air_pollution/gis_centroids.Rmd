@@ -1,0 +1,64 @@
+---
+title: "gis_centroids"
+author: "Cory"
+date: "7/10/2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(sp)
+library(sf)
+library(dplyr)
+library(sdalr)
+library(ggplot2)
+library(readr)
+```
+
+```{r}
+con <- con_db("sdal")
+bg <- st_read(con, c("geospatial$census_cb", "cb_2016_51_bg_500k"))
+
+st_centroid(bg)
+
+colnames(bg)[colnames(bg)=="wkb_geometry"] <- "geometry"
+st_geometry(bg) <- "geometry"
+
+bg_coords <- bg %>%
+  st_centroid %>%
+  st_coordinates %>%
+  as.data.frame()
+bg$long <- bg_coords[,1]
+bg$lat <- bg_coords[,2]
+
+write_csv(bg_coords, "~/git/sdal_data/data/sdal_data/final/va_bg_centroids.csv")
+```
+
+```{r}
+air <- readr::read_csv('~/git/sdal_data/data/sdal_data/final/annual_AQI.csv') %>%
+  mutate(State_id = substr(`monitor_id`,1,2))
+
+# air <- air[air$State_id == "51",]
+
+states <- map_data("state")
+near_va <- subset(states, region %in% c("virginia", "maryland", "west virginia",
+                                        "north carolina", "kentucky", "tennessee"))
+
+```
+
+```{r}
+ggplot(data = near_va) +
+  geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") +
+  geom_sf(data = bg) + 
+  geom_point(data = bg, aes(long, lat), alpha = 0.75, size = 2, color = "orange") +
+  geom_point(data = air, 
+             aes(x = Longitude, y = Latitude, 
+                 colour = cut(`annual_aqi`, c(-Inf, 20, 40, Inf)))) +
+  facet_wrap( ~ Year)
+  # scale_color_manual(values = c("(-Inf, 20]" = "green",
+  #                               "(20, 40]" = "lightblue",
+  #                               "(40, Inf]" = "red"))
+
+```
+
