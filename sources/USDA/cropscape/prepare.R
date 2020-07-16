@@ -32,7 +32,7 @@ raster_sqm_to_acres <- function(raster_list) {
 # SCRIPT ----------------------------------------------
 #* Get crop acres by type by block group ----
 #** get list of cdl files ----
-cdl_files <- list.files("data/sdad_data/original/USDA_CDL/", full.names = T, pattern = "*\\.tif$")
+cdl_files <- list.files("data/original/USDA_CDL/", full.names = T, pattern = "*\\.tif$")
 #** get polygons (Virginia block group spatial(sf) files) ----
 con <- sdalr::con_db(dbname = "sdad", host = "localhost", port = 5433, pass = "Iwnftp$2")
 sf <- sf::st_read(con, c("geospatial$census_cb", "cb_2016_51_bg_500k"))
@@ -52,14 +52,14 @@ for (f in cdl_files) {
     . <- crop_mask_raster_to_spatial(r, sf[sf$STATEFP=="51" & sf$COUNTYFP==fp,])
     . <- raster_sqm_to_acres(.)
     filename <- paste0("bg_acres_by_class_", fp, "_", y, ".csv")
-    data.table::fwrite(., file.path("data/sdad_data/working/usda_cdl", filename))
+    data.table::fwrite(., file.path("data/working/usda_cdl", filename))
   }
 }
 #** return resources ----
 parallel::stopCluster(cl)
 
 #* Combine all data files, add year and description columns, save new file ----
-data_files <- list.files("data/sdad_data/working/usda_cdl", full.names = T, pattern = ".*[0-9]\\.csv")
+data_files <- list.files("data/working/usda_cdl", full.names = T, pattern = ".*[0-9]\\.csv")
 if (exists("final_dt") == T) rm(final_dt)
 for (f in data_files) {
   yr <- stringr::str_match(f, "_(\\d\\d\\d\\d)")[,2]
@@ -69,4 +69,4 @@ for (f in data_files) {
   else final_dt <- dt
 }
 final_dt$desc <- cdlTools::updateNamesCDL(final_dt$class)
-data.table::fwrite(final_dt, file.path("data/sdad_data/working/usda_cdl", "bg_acres_by_class_all.csv"))
+data.table::fwrite(final_dt, file.path("data/working/usda_cdl", "bg_acres_by_class_all.csv"))

@@ -18,6 +18,7 @@ The Eviction Lab has also collected state reported, county-level statistics on l
 
 
 
+library(data.table)
 # get data all states
 . <- data.table()
 for (s in c(state.abb, "DC")) {
@@ -70,7 +71,10 @@ assign(dsname, .)
 
 # update database
 schemaname <- "economic_wellbeing$housing"
-con <- sdalr::con_db(dbname = "sdad", host = "localhost", port = 5433, pass = "Iwnftp$2")
+con <- sdalr::con_db(dbname = "sdad", host = "localhost", port = 5433, user = Sys.getenv("db_userid"), pass = Sys.getenv("db_pwd"))
 DBI::dbGetQuery(con, paste("CREATE SCHEMA IF NOT EXISTS", schemaname))
 DBI::dbWriteTable(con, c(schemaname, dsname), ., overwrite = T, row.names = F)
+
+
+
 

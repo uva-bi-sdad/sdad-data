@@ -1,26 +1,5 @@
 library(httr)
 library(jsonlite)
-block_counts_df_json <- toJSON(block_list)
-
-block_list_json <- jsonlite::toJSON(block_list)
-bg_geoid_list_json <- jsonlite::toJSON(bgids)
-
-l_json <- list(bg_geoid_list = bgids,
-               block_counts_df = block_list,
-               block_geoid = "geoid",
-               block_cnt = "tot_departs",
-               dist_miles = 3)
-
-rm(resp)
-resp <-
-  POST(
-    url = "http://sdad.policy-analytics.net:8000/get_bg_gravity",
-    body = l_json,
-    encode = "json"
-  )
-content(resp)
-
-
 
 bgids <-
   as.character(list(
@@ -61,13 +40,42 @@ bgids <-
 
 block_list <- fread("test.csv", colClasses = c("character", "integer"))
 
+l_json <- list(bg_geoid_list = bgids,
+               block_counts_df = block_list,
+               block_geoid = "geoid",
+               block_cnt = "tot_departs",
+               dist_miles = 2)
+
+rm(resp)
+
+# API Call
+resp <-
+  POST(
+    url = "http://sdad.policy-analytics.net:8000/get_bg_gravity",
+    body = l_json,
+    encode = "json"
+  )
+content(resp)
 
 
-jsn <- jsonlite::toJSON(list(bg_geoid_list=bgids, block_counts_df=block_list, block_geoid="geoid", block_cnt="tot_departs", dist_miles=3))
 
-get_bg_gravity <- function(bg_geoid_list, block_counts_df, block_geoid = "geoid", block_cnt = "tot_departs", dist_miles = 30) {
-  ls(environment())
 
-}
 
-get_bg_gravity(bg_geoid_list=bgids, block_counts_df=block_list_json, block_geoid="geoid", block_cnt="tot_departs", dist_miles=3)
+
+
+
+
+# jsn <- jsonlite::toJSON(list(bg_geoid_list=bgids, block_counts_df=block_list, block_geoid="geoid", block_cnt="tot_departs", dist_miles=3))
+# 
+# get_bg_gravity <- function(bg_geoid_list, block_counts_df, block_geoid = "geoid", block_cnt = "tot_departs", dist_miles = 30) {
+#   ls(environment())
+# 
+# }
+# 
+# get_bg_gravity(bg_geoid_list=bgids, block_counts_df=block_list_json, block_geoid="geoid", block_cnt="tot_departs", dist_miles=3)
+# 
+# 
+# block_counts_df_json <- toJSON(block_list)
+# 
+# block_list_json <- jsonlite::toJSON(block_list)
+# bg_geoid_list_json <- jsonlite::toJSON(bgids)

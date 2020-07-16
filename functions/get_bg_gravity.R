@@ -67,6 +67,15 @@ get_bg_gravity <- function(bg_geoid_list, block_counts_df, block_geoid = "geoid"
   idxes
 }
 
+
+
+
+
+
+
+
+
+
 get_bg_gravity_js <- function(jsn) {
   o <- jsonlite::fromJSON(jsn)
   library(data.table)

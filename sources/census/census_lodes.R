@@ -19,6 +19,7 @@ bg_geos <- bg_geos[!bg_geos$geoid %in% excld,]
 # Get LODES job count data
 lodes_ia_2015 <- data.table::setDT(read_lodes("ia", "od", "aux", "JT00", "2015", "data/sdad_data/original/CENSUS/LODES"))
 lodes_ia_2015[, w_geocode := as.character(w_geocode)]
+lodes_ia_2015[, h_geocode := as.character(h_geocode)]
 
 # get gravity indexes by block group
 gravity_idx <- get_bg_gravity(bg_geos$geoid, block_counts_df = lodes_ia_2015, block_geoid = "w_geocode", block_cnt = "S000")
